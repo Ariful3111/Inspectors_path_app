@@ -1,0 +1,704 @@
+import 'package:ej_flutter/views/screens/exam_session_screen.dart';
+import 'package:ej_flutter/views/screens/quiz_settings_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../views/screens/splash_screen.dart';
+import '../views/screens/login_screen.dart';
+import '../views/screens/navbar_screen.dart';
+import '../views/screens/onboarding_screen.dart';
+import '../views/screens/sign_up_screen.dart';
+import '../views/screens/forget_password_screen.dart';
+import '../views/screens/verify_otp_screen.dart';
+import '../views/screens/reset_password_screen.dart';
+import '../views/screens/edit_profile_screen.dart';
+import '../views/screens/change_password_screen.dart';
+import '../views/screens/privacy_policy_screen.dart';
+import '../views/screens/terms_of_service_screen.dart';
+import '../views/screens/faq_screen.dart';
+import '../views/screens/subscribe_screen.dart';
+import '../views/screens/contact_us_screen.dart';
+import '../views/screens/professional_plan_screen.dart';
+import '../views/screens/performance_screen.dart';
+import '../views/screens/history_models.dart';
+import '../views/screens/exam_loading_screen.dart';
+import '../views/screens/mcq_screen.dart';
+import '../views/screens/exam_review_screen.dart';
+import '../views/screens/exam_unlock_success_screen.dart';
+import '../views/screens/history_detail_view.dart';
+import '../views/screens/referral_screen.dart';
+import '../views/screens/unlock_exam_resources_screen.dart';
+import '../views/screens/shared_ebook_redirect_screen.dart';
+import '../views/screens/shared_referral_redirect_screen.dart';
+import '../models/ebook_store_model.dart';
+import '../models/payment_success_details.dart';
+import '../utils/app_constants.dart';
+import '../utils/quiz_voice_route_observer.dart';
+import '../views/screens/ebook_category_screen.dart';
+import '../views/screens/ebook_detail_screen.dart';
+
+GoRouter getRouter() {
+  return GoRouter(
+    initialLocation: '/splash',
+    observers: [quizVoiceRouteObserver],
+    redirect: (context, state) {
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+
+      GoRoute(
+        path: '/sign-up',
+        name: 'sign-up',
+        builder: (context, state) => SignUpScreen(
+          initialReferralCode: state.uri.queryParameters['ref'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/forget-password',
+        name: 'forget-password',
+        builder: (context, state) => const ForgetPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/verify-otp',
+        name: 'verify-otp',
+        builder: (context, state) {
+          if (state.extra is Map<String, dynamic>) {
+            final data = state.extra as Map<String, dynamic>;
+            return VerifyOtpScreen(
+              email: data['email'] as String?,
+              isForPasswordReset: data['isForPasswordReset'] as bool? ?? false,
+              isForDeviceReset: data['isForDeviceReset'] as bool? ?? false,
+              deviceResetPassword: data['password'] as String?,
+            );
+          } else {
+            final email = state.extra as String?;
+            return VerifyOtpScreen(email: email);
+          }
+        },
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'reset-password',
+        builder: (context, state) {
+          if (state.extra is Map<String, dynamic>) {
+            final data = state.extra as Map<String, dynamic>;
+            return ResetPasswordScreen(email: data['email'], otp: data['otp']);
+          } else {
+            final email = state.extra as String?;
+            return ResetPasswordScreen(email: email);
+          }
+        },
+      ),
+      GoRoute(
+        path: '/home',
+        name: 'home',
+        builder: (context, state) {
+          final tab = state.uri.queryParameters['tab'] ?? '';
+          final initialIndex = switch (tab) {
+            'ebook' => 1,
+            'resources' => 1,
+            'history' => 2,
+            'profile' => 3,
+            _ => 0,
+          };
+
+          return NavbarScreen(
+            initialIndex: initialIndex,
+            initialReferralCode: state.uri.queryParameters['ref'] ?? '',
+            initialProductId: state.uri.queryParameters['productId'] ?? '',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/shared-referral',
+        name: 'shared-referral',
+        builder: (context, state) => SharedReferralRedirectScreen(
+          referralCode: state.uri.queryParameters['ref'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/shared-ebook',
+        name: 'shared-ebook',
+        builder: (context, state) => SharedEbookRedirectScreen(
+          referralCode: state.uri.queryParameters['ref'] ?? '',
+          productId: state.uri.queryParameters['productId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/ebook-category',
+        name: 'ebook-category',
+        builder: (context, state) {
+          if (!AppConstants.resourcesEnabled) {
+            return const NavbarScreen(initialIndex: 1);
+          }
+          final extra = state.extra;
+          final category = extra is Map ? extra['category'] : null;
+          return EbookCategoryScreen(
+            categoryId: state.uri.queryParameters['categoryId'] ?? '',
+            initialReferralCode: state.uri.queryParameters['ref'] ?? '',
+            initialProductId: state.uri.queryParameters['productId'] ?? '',
+            initialCategory: category is EbookCategory ? category : null,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/ebook-detail',
+        name: 'ebook-detail',
+        builder: (context, state) {
+          if (!AppConstants.resourcesEnabled) {
+            return const NavbarScreen(initialIndex: 1);
+          }
+          return EbookDetailScreen(
+            productId: state.uri.queryParameters['productId'] ?? '',
+            initialReferralCode: state.uri.queryParameters['ref'] ?? '',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        name: 'edit-profile',
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/change-password',
+        name: 'change-password',
+        builder: (context, state) {
+          final extra = state.extra;
+          final forceChange =
+              extra is Map<String, dynamic> && extra['forceChange'] == true;
+          return ChangePasswordScreen(forceChange: forceChange);
+        },
+      ),
+      GoRoute(
+        path: '/privacy-policy',
+        name: 'privacy-policy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: '/terms-of-service',
+        name: 'terms-of-service',
+        builder: (context, state) => const TermsOfServiceScreen(),
+      ),
+      GoRoute(
+        path: '/faq',
+        name: 'faq',
+        builder: (context, state) => const FaqScreen(),
+      ),
+      GoRoute(
+        path: '/subscribe',
+        name: 'subscribe',
+        builder: (context, state) => const SubscribeScreen(),
+      ),
+      GoRoute(
+        path: '/contact-us',
+        name: 'contact-us',
+        builder: (context, state) => const ContactUsScreen(),
+      ),
+      GoRoute(
+        path: '/referral',
+        name: 'referral',
+        builder: (context, state) => const ReferralScreen(),
+      ),
+      GoRoute(
+        path: '/unlock-exam-resources',
+        name: 'unlock-exam-resources',
+        builder: (context, state) => const UnlockExamResourcesScreen(),
+      ),
+      GoRoute(
+        path: '/professional-plan',
+        name: 'professional-plan',
+        builder: (context, state) => const ProfessionalPlanScreen(),
+      ),
+      GoRoute(
+        path: '/performance',
+        name: 'performance',
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is PerformanceArgs) {
+            return PerformanceScreen(
+              entry: extra.entry,
+              history: extra.history,
+            );
+          }
+          return const PerformanceScreen(
+            entry: HistoryEntry(
+              examName: 'API 570 - Piping Inspector',
+              date: '1/10/2020, 10:45:37 AM',
+              scorePercent: 40.0,
+              scoreDetail: '4/10',
+            ),
+            history: [],
+            isProfileFlow: true,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/quiz-settings',
+        name: 'quiz-settings',
+        builder: (context, state) {
+          final extra = state.extra;
+          String title = 'API 570 - Piping Inspector';
+          String? examId;
+          int? questionCount;
+          int? selectedQuestionCount;
+          String? effectivitySheetContent;
+          String? bodyOfKnowledgeContent;
+
+          int? parseInt(dynamic value) {
+            if (value == null) return null;
+            if (value is int) return value;
+            if (value is num) return value.toInt();
+            return int.tryParse(value.toString());
+          }
+
+          if (extra is Map) {
+            title = extra['courseTitle']?.toString() ?? title;
+            examId = extra['examId']?.toString();
+            questionCount = parseInt(extra['questionCount']);
+            selectedQuestionCount = parseInt(extra['selectedQuestionCount']);
+            effectivitySheetContent = extra['effectivitySheetContent']
+                ?.toString();
+            bodyOfKnowledgeContent = extra['bodyOfKnowledgeContent']
+                ?.toString();
+          }
+          return QuizSettingsScreen(
+            courseTitle: title,
+            examId: examId,
+            questionCount: questionCount,
+            selectedQuestionCount: selectedQuestionCount,
+            effectivitySheetContent: effectivitySheetContent,
+            bodyOfKnowledgeContent: bodyOfKnowledgeContent,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/exam-session',
+        name: 'exam-session',
+        builder: (context, state) {
+          final extra = state.extra;
+          String title = 'API 570 - Piping Inspector';
+          String? examId;
+          int? questionCount;
+          int? totalQuestionCount;
+          String? effectivitySheetContent;
+          String? bodyOfKnowledgeContent;
+          bool timedMode = true;
+          bool voiceModeEnabled = false;
+          bool voicePracticeMode = false;
+
+          int? parseInt(dynamic value) {
+            if (value == null) return null;
+            if (value is int) return value;
+            if (value is num) return value.toInt();
+            return int.tryParse(value.toString());
+          }
+
+          bool parseBool(dynamic value, {bool fallback = true}) {
+            if (value == null) return fallback;
+            if (value is bool) return value;
+            if (value is num) return value != 0;
+            final lowered = value.toString().toLowerCase();
+            if (lowered == 'true' || lowered == '1' || lowered == 'yes') {
+              return true;
+            }
+            if (lowered == 'false' || lowered == '0' || lowered == 'no') {
+              return false;
+            }
+            return fallback;
+          }
+
+          if (extra is Map) {
+            title = extra['courseTitle']?.toString() ?? title;
+            examId = extra['examId']?.toString();
+            questionCount = parseInt(extra['questionCount']);
+            totalQuestionCount = parseInt(extra['totalQuestionCount']);
+            effectivitySheetContent = extra['effectivitySheetContent']
+                ?.toString();
+            bodyOfKnowledgeContent = extra['bodyOfKnowledgeContent']
+                ?.toString();
+            timedMode = parseBool(extra['timedMode'], fallback: timedMode);
+            voiceModeEnabled = parseBool(
+              extra['voiceModeEnabled'],
+              fallback: voiceModeEnabled,
+            );
+            voicePracticeMode = parseBool(
+              extra['voicePracticeMode'],
+              fallback: voicePracticeMode,
+            );
+          }
+          return ExamSessionScreen(
+            courseTitle: title,
+            examId: examId,
+            questionCount: questionCount,
+            totalQuestionCount: totalQuestionCount,
+            effectivitySheetContent: effectivitySheetContent,
+            bodyOfKnowledgeContent: bodyOfKnowledgeContent,
+            timedMode: timedMode,
+            voiceModeEnabled: voiceModeEnabled,
+            voicePracticeMode: voicePracticeMode,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/exam-loading',
+        name: 'exam-loading',
+        builder: (context, state) {
+          final extra = state.extra;
+          String title = 'API 570 - Piping Inspector';
+          String? examId;
+          int? questionCount;
+          int? totalQuestionCount;
+          bool timedMode = true;
+          bool regenerate = false;
+          bool voiceModeEnabled = false;
+          bool voicePracticeMode = false;
+
+          int? parseInt(dynamic value) {
+            if (value == null) return null;
+            if (value is int) return value;
+            if (value is num) return value.toInt();
+            return int.tryParse(value.toString());
+          }
+
+          bool parseBool(dynamic value, {bool fallback = true}) {
+            if (value == null) return fallback;
+            if (value is bool) return value;
+            if (value is num) return value != 0;
+            final lowered = value.toString().toLowerCase();
+            if (lowered == 'true' || lowered == '1' || lowered == 'yes') {
+              return true;
+            }
+            if (lowered == 'false' || lowered == '0' || lowered == 'no') {
+              return false;
+            }
+            return fallback;
+          }
+
+          if (extra is Map) {
+            title = extra['courseTitle']?.toString() ?? title;
+            examId = extra['examId']?.toString();
+            questionCount = parseInt(extra['questionCount']);
+            totalQuestionCount = parseInt(extra['totalQuestionCount']);
+            timedMode = parseBool(extra['timedMode'], fallback: timedMode);
+            regenerate = parseBool(extra['regenerate'], fallback: regenerate);
+            voiceModeEnabled = parseBool(
+              extra['voiceModeEnabled'],
+              fallback: voiceModeEnabled,
+            );
+            voicePracticeMode = parseBool(
+              extra['voicePracticeMode'],
+              fallback: voicePracticeMode,
+            );
+          }
+          return ExamLoadingScreen(
+            courseTitle: title,
+            examId: examId,
+            questionCount: questionCount,
+            totalQuestionCount: totalQuestionCount,
+            timedMode: timedMode,
+            regenerate: regenerate,
+            voiceModeEnabled: voiceModeEnabled,
+            voicePracticeMode: voicePracticeMode,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/mcq',
+        name: 'mcq',
+        builder: (context, state) {
+          final extra = state.extra;
+          String title = 'API 570 - Piping Inspector';
+          List<dynamic>? questions;
+          DateTime? startTime;
+          DateTime? endTime;
+          int? durationMinutes;
+          String? examId;
+          int? totalQuestionCount;
+          bool timedMode = true;
+          int? sessionId;
+          bool voiceModeEnabled = false;
+          bool voicePracticeMode = false;
+
+          int? parseInt(dynamic value) {
+            if (value == null) return null;
+            if (value is int) return value;
+            if (value is num) return value.toInt();
+            return int.tryParse(value.toString());
+          }
+
+          DateTime? parseDate(dynamic value) {
+            if (value == null) return null;
+            if (value is DateTime) return value;
+            return DateTime.tryParse(value.toString());
+          }
+
+          bool parseBool(dynamic value, {bool fallback = true}) {
+            if (value == null) return fallback;
+            if (value is bool) return value;
+            if (value is num) return value != 0;
+            final lowered = value.toString().toLowerCase();
+            if (lowered == 'true' || lowered == '1' || lowered == 'yes') {
+              return true;
+            }
+            if (lowered == 'false' || lowered == '0' || lowered == 'no') {
+              return false;
+            }
+            return fallback;
+          }
+
+          if (extra is Map) {
+            title = extra['courseTitle']?.toString() ?? title;
+            examId = extra['examId']?.toString();
+            final rawQuestions = extra['questions'];
+            if (rawQuestions is List) {
+              questions = rawQuestions;
+            }
+            startTime = parseDate(extra['startTime']);
+            endTime = parseDate(extra['endTime']);
+            durationMinutes = parseInt(extra['durationMinutes']);
+            totalQuestionCount = parseInt(extra['totalQuestionCount']);
+            timedMode = parseBool(extra['timedMode'], fallback: timedMode);
+            voiceModeEnabled = parseBool(
+              extra['voiceModeEnabled'],
+              fallback: voiceModeEnabled,
+            );
+            voicePracticeMode = parseBool(
+              extra['voicePracticeMode'],
+              fallback: voicePracticeMode,
+            );
+            final rawSessionId = extra['sessionId'];
+            if (rawSessionId != null) {
+              sessionId = int.tryParse(rawSessionId.toString());
+            }
+          }
+          return McqScreen(
+            key: sessionId != null ? ValueKey(sessionId) : null,
+            courseTitle: title,
+            examId: examId,
+            questions: questions,
+            totalQuestionCount: totalQuestionCount,
+            startTime: startTime,
+            endTime: endTime,
+            durationMinutes: durationMinutes,
+            timedMode: timedMode,
+            voiceModeEnabled: voiceModeEnabled,
+            voicePracticeMode: voicePracticeMode,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/exam-review',
+        name: 'exam-review',
+        builder: (context, state) {
+          final extra = state.extra;
+          String title = 'API 570 - Piping Inspector';
+          List<dynamic> questions = const [];
+          Map<int, Set<int>> selected = const {};
+          Set<int> flagged = const {};
+          String? examId;
+          List<int>? timeSpentSec;
+          bool autoSubmit = false;
+          bool voiceModeEnabled = false;
+          int returnQuestionIndex = 0;
+          bool parseBool(dynamic value, {bool fallback = false}) {
+            if (value == null) return fallback;
+            if (value is bool) return value;
+            if (value is num) return value != 0;
+            final lowered = value.toString().toLowerCase();
+            if (lowered == 'true' || lowered == '1' || lowered == 'yes') {
+              return true;
+            }
+            if (lowered == 'false' || lowered == '0' || lowered == 'no') {
+              return false;
+            }
+            return fallback;
+          }
+
+          if (extra is Map) {
+            title = extra['courseTitle']?.toString() ?? title;
+            examId = extra['examId']?.toString();
+            questions = (extra['questions'] as List<dynamic>?) ?? const [];
+            final rawTimeSpent = extra['timeSpentSec'];
+            if (rawTimeSpent is List) {
+              timeSpentSec = rawTimeSpent
+                  .map((e) => int.tryParse(e.toString()) ?? 0)
+                  .toList();
+            }
+            autoSubmit = parseBool(extra['autoSubmit'], fallback: autoSubmit);
+            voiceModeEnabled = parseBool(
+              extra['voiceModeEnabled'],
+              fallback: voiceModeEnabled,
+            );
+            returnQuestionIndex =
+                int.tryParse(extra['returnQuestionIndex']?.toString() ?? '') ??
+                returnQuestionIndex;
+            final rawSelected = extra['selected'];
+            if (rawSelected is Map) {
+              selected = rawSelected.map<int, Set<int>>((key, value) {
+                final index = int.tryParse(key.toString()) ?? 0;
+                if (value is Set) {
+                  return MapEntry(
+                    index,
+                    value
+                        .map((item) => int.tryParse(item.toString()) ?? -1)
+                        .where((item) => item >= 0)
+                        .toSet(),
+                  );
+                }
+                if (value is List) {
+                  return MapEntry(
+                    index,
+                    value
+                        .map((item) => int.tryParse(item.toString()) ?? -1)
+                        .where((item) => item >= 0)
+                        .toSet(),
+                  );
+                }
+                final parsed = int.tryParse(value.toString()) ?? -1;
+                return MapEntry(index, parsed >= 0 ? <int>{parsed} : <int>{});
+              });
+            }
+            final rawFlagged = extra['flagged'];
+            if (rawFlagged is Set) {
+              flagged = rawFlagged
+                  .map((e) => int.tryParse(e.toString()) ?? 0)
+                  .toSet();
+            } else if (rawFlagged is List) {
+              flagged = rawFlagged
+                  .map((e) => int.tryParse(e.toString()) ?? 0)
+                  .toSet();
+            }
+          }
+          final voiceAnalytics = extra is Map && extra['voiceAnalytics'] is Map
+              ? Map<String, dynamic>.from(extra['voiceAnalytics'] as Map)
+              : null;
+          return ExamReviewScreen(
+            courseTitle: title,
+            questions: questions,
+            selected: selected,
+            flagged: flagged,
+            examId: examId,
+            timeSpentSec: timeSpentSec,
+            voiceAnalytics: voiceAnalytics,
+            autoSubmit: autoSubmit,
+            voiceModeEnabled: voiceModeEnabled,
+            returnQuestionIndex: returnQuestionIndex,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/history-detail',
+        name: 'history-detail',
+        builder: (context, state) {
+          final extra = state.extra;
+          HistoryEntry entry = const HistoryEntry(
+            examName: 'Exam',
+            date: '-',
+            scorePercent: 0,
+            scoreDetail: '0/0',
+          );
+          List<HistoryEntry> historyEntries = const [];
+          List<TopicBreakdown> topics = const [];
+          if (extra is Map) {
+            final rawEntry = extra['entry'];
+            if (rawEntry is HistoryEntry) {
+              entry = rawEntry;
+            }
+            final rawHistory = extra['historyEntries'];
+            if (rawHistory is List<HistoryEntry>) {
+              historyEntries = rawHistory;
+            }
+            final rawTopics = extra['topics'];
+            if (rawTopics is List<TopicBreakdown>) {
+              topics = rawTopics;
+            }
+          }
+          return HistoryDetailView(
+            entry: entry,
+            topics: topics,
+            historyEntries: historyEntries,
+            onBack: () => context.pop(),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/exam-unlock-success',
+        name: 'exam-unlock-success',
+        builder: (context, state) {
+          final extra = state.extra;
+          String title = 'API 570 - Piping Inspector';
+          String examId = '';
+          int? questionCount;
+          String? effectivitySheetContent;
+          String? bodyOfKnowledgeContent;
+          PaymentSuccessDetails paymentDetails = const PaymentSuccessDetails(
+            purchaseType: 'plan',
+            title: 'Professional Plan',
+            amountPaid: 150,
+            currency: 'USD',
+          );
+
+          num? parseNum(dynamic value) {
+            if (value == null) return null;
+            if (value is num) return value;
+            return num.tryParse(value.toString());
+          }
+
+          if (extra is Map) {
+            title = extra['courseTitle']?.toString() ?? title;
+            examId = extra['examId']?.toString() ?? '';
+            questionCount = parseNum(extra['questionCount'])?.toInt();
+            effectivitySheetContent = extra['effectivitySheetContent']
+                ?.toString();
+            bodyOfKnowledgeContent = extra['bodyOfKnowledgeContent']
+                ?.toString();
+            final dynamic paymentSummary = extra['paymentSummary'];
+            if (paymentSummary is Map<String, dynamic>) {
+              paymentDetails = PaymentSuccessDetails.fromJson(paymentSummary);
+            } else if (paymentSummary is Map) {
+              paymentDetails = PaymentSuccessDetails.fromJson(
+                Map<String, dynamic>.from(paymentSummary),
+              );
+            } else {
+              final purchaseType =
+                  extra['purchaseType']?.toString().trim().toLowerCase() ??
+                  'plan';
+              paymentDetails = PaymentSuccessDetails(
+                purchaseType: purchaseType,
+                title: purchaseType == 'plan' ? 'Professional Plan' : title,
+                amountPaid: parseNum(extra['amountPaid']) ?? 150,
+                currency: (extra['currency']?.toString() ?? 'USD')
+                    .toUpperCase(),
+              );
+            }
+          }
+
+          return ExamUnlockSuccessScreen(
+            courseTitle: title,
+            examId: examId,
+            questionCount: questionCount,
+            effectivitySheetContent: effectivitySheetContent,
+            bodyOfKnowledgeContent: bodyOfKnowledgeContent,
+            paymentDetails: paymentDetails,
+          );
+        },
+      ),
+    ],
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Error: ${state.error}'))),
+  );
+}
